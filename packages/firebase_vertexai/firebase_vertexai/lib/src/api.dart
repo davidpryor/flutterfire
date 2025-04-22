@@ -137,13 +137,17 @@ final class UsageMetadata {
       this.candidatesTokenCount,
       this.totalTokenCount,
       this.promptTokensDetails,
-      this.candidatesTokensDetails});
+      this.candidatesTokensDetails,
+      this.thoughtsTokenCount});
 
   /// Number of tokens in the prompt.
   final int? promptTokenCount;
 
   /// Total number of tokens across the generated candidates.
   final int? candidatesTokenCount;
+
+  /// Number of tokens used for thinking.
+  final int? thoughtsTokenCount;
 
   /// Total token count for the generation request (prompt + candidates).
   final int? totalTokenCount;
@@ -750,6 +754,21 @@ abstract class BaseGenerationConfig {
           'presencePenalty': presencePenalty,
         if (frequencyPenalty case final frequencyPenalty?)
           'frequencyPenalty': frequencyPenalty,
+  };
+}
+
+/// Configuration options for thinking configuration.
+final class ThinkingConfig {
+  // ignore: public_member_api_docs
+  ThinkingConfig({this.thinkingBudget});
+
+  /// The budget for thinking tokens if the model supports it.
+  ///
+  /// This is the number of tokens that the model can use to think about the
+  /// response before generating it.
+  final int? thinkingBudget;
+  Map<String, Object?> toJson() => {
+        if (thinkingBudget case final thinkingBudget?) 'thinkingBudget': thinkingBudget,
       };
 }
 
@@ -767,6 +786,7 @@ final class GenerationConfig extends BaseGenerationConfig {
     super.frequencyPenalty,
     this.responseMimeType,
     this.responseSchema,
+    this.thinkingConfig,
   });
 
   /// The set of character sequences (up to 5) that will stop output generation.
@@ -788,16 +808,16 @@ final class GenerationConfig extends BaseGenerationConfig {
   ///   a schema; currently this is limited to `application/json`.
   final Schema? responseSchema;
 
+  /// Configuration for the model's thinking parameters.
+  final ThinkingConfig? thinkingConfig;
+
   @override
   Map<String, Object?> toJson() => {
         ...super.toJson(),
-        if (stopSequences case final stopSequences?
-            when stopSequences.isNotEmpty)
-          'stopSequences': stopSequences,
-        if (responseMimeType case final responseMimeType?)
-          'responseMimeType': responseMimeType,
-        if (responseSchema case final responseSchema?)
-          'responseSchema': responseSchema,
+        if (stopSequences case final stopSequences? when stopSequences.isNotEmpty) 'stopSequences': stopSequences,
+        if (responseMimeType case final responseMimeType?) 'responseMimeType': responseMimeType,
+        if (responseSchema case final responseSchema?) 'responseSchema': responseSchema,
+        if (thinkingConfig case final thinkingConfig?) 'thinkingConfig': thinkingConfig.toJson(),
       };
 }
 
@@ -956,6 +976,10 @@ UsageMetadata _parseUsageMetadata(Object jsonObject) {
       candidatesTokenCount,
     _ => null,
   };
+  final thoughtsTokenCount = switch (jsonObject) {
+    {'thoughtsTokenCount': final int thoughtsTokenCount} => thoughtsTokenCount,
+    _ => null,
+  };
   final totalTokenCount = switch (jsonObject) {
     {'totalTokenCount': final int totalTokenCount} => totalTokenCount,
     _ => null,
@@ -975,7 +999,8 @@ UsageMetadata _parseUsageMetadata(Object jsonObject) {
       candidatesTokenCount: candidatesTokenCount,
       totalTokenCount: totalTokenCount,
       promptTokensDetails: promptTokensDetails,
-      candidatesTokensDetails: candidatesTokensDetails);
+      candidatesTokensDetails: candidatesTokensDetails,
+      thoughtsTokenCount: thoughtsTokenCount);
 }
 
 ModalityTokenCount _parseModalityTokenCount(Object? jsonObject) {
